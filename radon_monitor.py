@@ -11,19 +11,22 @@ import time
 
 def test():
     rm = Radon_Monitor()
-    rm.image_proc_train()
+    
 
 protocol = test
 
 # Paths
 REFERENCE_DATA_PATH = './reference_data/' # calibration key
-RAW_PHOTO_PATH = '/Volumes/wellington/projects/radon_monitor/data/hourly_tests/'
-TO_BE_LABELED_CUTOUTS = '/Volumes/wellington/projects/radon_monitor/data/unlabled_images/'
-LABELED_CUTOUT_IMGS = '/Volumes/wellington/projects/radon_monitor/data/unlabled_img_bucket/'
+RESULTS_FILE= './results.csv'
+RAW_PHOTO_PATH = '/Volumes/sambashare/projects/radon_monitor/data/hourly_tests/'
+TO_BE_LABELED_CUTOUTS = '/Volumes/sambashare/projects/radon_monitor/data/unlabled_images/'
+LABELED_CUTOUT_IMGS = '/Volumes/sambashare/projects/radon_monitor/data/unlabled_img_bucket/'
+
 
 class Radon_Monitor:
     def __init__(self):
-        global REFERENCE_DATA_PATH, RAW_PHOTO_PATH,TO_BE_LABELED_CUTOUTS
+        global REFERENCE_DATA_PATH, RAW_PHOTO_PATH
+        global TO_BE_LABELED_CUTOUTS,RESULTS_FILE
 
         self.positions_df = pd.read_csv(open(REFERENCE_DATA_PATH+'positions.csv','rb'))
         self.positions_df.loc[:,'coordinates'] = list(map(lambda x:eval(x),self.positions_df.coordinates))
@@ -38,6 +41,19 @@ class Radon_Monitor:
             self.date_path_map.loc[i,'path'] = path
         self.date_path_map = self.date_path_map.sort_values(by = 'date').reset_index(drop = True)
         self.date_path_map['day'] = self.date_path_map['date'].dt.strftime('%m/%d/%Y')
+        self.date_path_map['hour'] = self.date_path_map['date'].dt.hour
+        try:
+            self.img_df = pd.read_csv(RESULTS_FILE)
+            self.img_df['img_date'] = pd.to_datetime(self.img_df['img_date'])
+            self.img_df = self.img_df.dropna(subset = ['short_term_span'])
+            self.img_df['month'] = self.img_df['img_date'].dt.month
+            self.img_df['day'] = self.img_df['img_date'].dt.day
+            self.img_df['year'] = self.img_df['img_date'].dt.year
+            print("{} previous radon measurements found".format(len(self.img_df)))
+        except:
+            print('No previous radon measurements found, intalizing new database')
+            self.img_df = pd.DataFrame(columns = ['img_date','img_path','img_name'])
+        
     def browse_photos(self,photo_path,return_data = False,figsize = (15,15)):
         '''displays one raw photo image and returns data if selected'''
         photo_data = imageio.imread(photo_path)
@@ -128,15 +144,18 @@ class Radon_Monitor:
     def calibrate_a_date(self):
         '''place saver to eventually replace the calibrator notebook'''
         pass
+    
     def read_image(self):
         pass
-    def image_proc_train(self):
+
+
+    def image_proc_train(self,num_photos_to_add = 1000):
         ''' Used to create unlabeled training set.
         Converts from raw pictures in 'hourly_tests' folder to 
         unlabled cut outs in unlabled_images folder. 
         '''
         failed_file_paths = []
-        for photo_fp in self.photo_path:
+        for k, photo_fp in enumerate(self.photo_path):
             photo_date = self._date_extractor(photo_fp).strftime('%m_%d_%Y')
             try:photo_data = imageio.imread(photo_fp)[:,:,0]
             except:
@@ -152,7 +171,11 @@ class Radon_Monitor:
                 save_to = TO_BE_LABELED_CUTOUTS+position+'_'+photo_date+'.png'
                 imageio.imwrite(save_to,subphoto_data)
                 time.sleep(2) # wellington keeps crashing, hoping the giving a 1 second break between saves might help
+            
             print('successfully processed ',photo_fp)
+            if k > num_photos_to_add:
+                print('{} photos processed'.format(num_photos_to_add))
+                break
         print(failed_file_paths)
 if __name__ == '__main__':
     protocol()

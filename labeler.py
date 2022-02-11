@@ -35,7 +35,11 @@ for path in range(num_to_label):
     label = input("What is the number (enter -1 for transistional)? ")
     data_flat = data.flatten()
     data_labeled = np.zeros(785)
-    data_labeled[:784] = data_flat
+    try:
+        data_labeled[:784] = data_flat
+    except:
+        print('failed line 39')
+        continue
     data_labeled[784] = float(label)
     X = np.vstack([X,data_labeled])
     np.savetxt("training_data.csv", X, delimiter=",")
