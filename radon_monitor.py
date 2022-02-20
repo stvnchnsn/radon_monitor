@@ -96,7 +96,7 @@ class Radon_Monitor:
         cols = ['date','position','coordinates']
         return self.positions_df[cols][date_mask]
 
-    def cutout_sub(self,fp,calibration_mode = False, figsize = (10,10)):
+    def cutout_sub(self,fp,calibration_mode = False, figsize = (10,10),savefig = False):
         '''Shows subplot of cut outs. If calibration_mode = True, then calibration positions
         must be entered, otherwise the calibration posistions are derived using _calibration_date'''
         if not calibration_mode:
@@ -114,7 +114,11 @@ class Radon_Monitor:
             axes[i].set_title(position)
         axes[7].axis('off')
         axes[8].axis('off')
-        plt.show()
+        fig1 = plt.gcf()
+        if savefig == True:
+            plt.savefig('./figures/calibrator_example.png')
+        else:
+            plt.show()
         self.browse_photos(fp)
     def scope(self,position,fp,return_data = False,show = True):
         photo_data = imageio.imread(fp)
